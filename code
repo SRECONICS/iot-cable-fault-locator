@@ -1,0 +1,49 @@
+#include <WiFi.h>      // remove if using Arduino UNO
+#include <HTTPClient.h>
+
+#define ANALOG_PIN 34      // ESP32 analog pin
+#define TOTAL_LENGTH 1000  // cable length in meters
+
+float voltage = 0;
+float distance = 0;
+
+const char* ssid = "YOUR_WIFI";
+const char* password = "YOUR_PASSWORD";
+String server = "http://api.thingspeak.com/update?api_key=YOURKEY";
+
+void setup() {
+  Serial.begin(115200);
+  analogReadResolution(12);
+
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting");
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nConnected to WiFi");
+}
+
+void loop() {
+
+  int raw = analogRead(ANALOG_PIN);
+  voltage = (raw / 4095.0) * 3.3;
+
+  // convert voltage to distance (simple proportional method)
+  distance = (voltage / 3.3) * TOTAL_LENGTH;
+
+  Serial.print("Fault Distance: ");
+  Serial.print(distance);
+  Serial.println(" meters");
+
+  if(WiFi.status()==WL_CONNECTED){
+    HTTPClient http;
+    String url = server + "&field1=" + String(distance);
+    http.begin(url);
+    http.GET();
+    http.end();
+  }
+
+  delay(5000);
+}
